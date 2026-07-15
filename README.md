@@ -1,103 +1,78 @@
-# White-Label Water Station System (PHP + Supabase)
+# Water Station Dashboard — Vercel Edition
 
-Complete management system para sa water refilling station: **POS / order tracker,
-customer records, utang tracker, inventory, gastos, at public online ordering** —
-lahat naka-white-label sa isang config file.
+Admin-only management dashboard for a water refilling station:
+**POS / order tracker, customer records, credit (utang) tracker, inventory,
+and expenses.** No public ordering — only signed-in staff can create orders.
 
-**Stack:** Traditional PHP (7.4+) + Supabase (Postgres via PostgREST API).
-Walang framework, walang build step, walang Postgres driver na kailangan sa hosting —
-plain cURL lang. Tumatakbo sa kahit anong cheap shared hosting (Hostinger, z.com, atbp.).
-
----
-
-## Setup (15 minutes)
-
-**1. Create a Supabase project** → [supabase.com](https://supabase.com) → New project (free tier ok).
-
-**2. Run the schema** → Supabase Dashboard → **SQL Editor** → New query →
-paste the contents of `schema.sql` → **Run**. This creates all tables, locks them
-with RLS, and seeds the price list, starter inventory, and default login.
-
-**3. Get your keys** → **Project Settings → API**:
-- Project URL (e.g. `https://abcd1234.supabase.co`)
-- `service_role` secret key
-
-**4. Edit `config.php`** — brand name, tagline, color, phone, address, plus the
-two Supabase values above.
-
-**5. Upload everything** to your PHP host (public_html) — or run locally:
-```bash
-php -S localhost:8000
-```
-
-**6. Login** at `/login.php` → `admin` / `admin123` → **palitan agad ang password**
-(SQL Editor):
-```sql
-update staff_users set password_hash = crypt('BagongPassword123', gen_salt('bf'))
-where username = 'admin';
-```
+**Stack:** one static `index.html` (vanilla JS + supabase-js) + Supabase.
+No PHP, no server, no build step — deploys straight to **Vercel** (or Netlify,
+GitHub Pages, any static host).
 
 ---
 
-## White-label checklist (per client deploy)
+## Setup (10 minutes)
 
-Isang file lang ang ginagalaw: **`config.php`**
+**1. Supabase project** → [supabase.com](https://supabase.com) → New project.
 
-| Setting | Ano ito |
+**2. Create the tables** → SQL Editor → paste and run `schema.sql`
+(from the original package — skip if you already ran it).
+
+**3. Grant access to the browser app** → SQL Editor → paste and run
+`vercel-setup.sql` (the RLS policies in this folder).
+
+**4. Create your admin login** → Authentication → **Users** → *Add user* →
+email + password → tick **Auto Confirm User**.
+
+**5. Lock the door** → Authentication → **Sign In / Providers** → Email →
+turn **OFF** "Allow new users to sign up".
+*This step is what keeps strangers out — don't skip it.*
+
+**6. Configure the app** → open `index.html`, edit the `CONFIG` block at the
+top of the script:
+- `SUPABASE_URL` — Project Settings → API → Project URL
+- `SUPABASE_ANON_KEY` — Project Settings → API → `anon` `public` key
+- brand name, tagline, color, currency
+
+**7. Deploy** → push `index.html` to a GitHub repo → import to Vercel → done.
+(No `vercel.json` needed; a lone `index.html` at the repo root just works.)
+
+---
+
+## Security model (read this once)
+
+- The **anon key in the HTML is fine to publish** — that's what it's for.
+  Protection comes from Row Level Security (only `authenticated` users can
+  touch data) plus **disabled sign-ups** (only accounts you create exist).
+- **Never** put the `service_role` key in this file. It bypasses RLS.
+- The old `staff_users` table (from the PHP version) stays locked and unused;
+  logins are now Supabase Auth accounts.
+
+## White-label checklist (per client)
+
+One block to edit: `CONFIG` at the top of `index.html`.
+
+| Setting | What it is |
 |---|---|
-| `BRAND_NAME` / `BRAND_TAGLINE` | Pangalan at tagline ng istasyon |
-| `BRAND_COLOR` | Primary accent — buong UI sumusunod |
-| `BRAND_INK` | Dark tone (sidebar/headings) |
-| `BRAND_PHONE` / `BRAND_ADDRESS` | Lalabas sa public order page |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | Isang Supabase project **per client** |
+| `BRAND_NAME` / `BRAND_TAGLINE` | Station name + tagline |
+| `BRAND_COLOR` / `BRAND_INK` | Accent + dark tone — whole UI follows |
+| `CURRENCY` | Default `₱` |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | One Supabase project **per client** |
 
-Bawat client = sariling Supabase project (libreng tier) + sariling copy ng files.
-Hiwalay ang data, hiwalay ang keys — walang multi-tenant risk.
+Per client = own Supabase project (free tier) + own copy of `index.html`
+deployed to its own Vercel project. Data fully isolated, handover is trivial.
 
----
+## How credit (utang) works
 
-## Pages
-
-| Page | Para saan |
-|---|---|
-| `index.php` | Dashboard — benta ngayon, nakolekta, pending deliveries, utang board, low stock |
-| `order-new.php` | POS — walk-in o delivery, live total at sukli, utang handling |
-| `orders.php` | Order tracker — pending → for delivery → delivered, bayad, cancel |
-| `customers.php` | Customer records — search, add, balances |
-| `customer-view.php` | Profile + ledger (orders at payments) + tanggap bayad |
-| `utang.php` | Utang tracker — chalkboard view, quick payment per suki |
-| `inventory.php` | Stock levels, low-stock alerts, adjustments na may movement log |
-| `expenses.php` | Buwanang gastos per category |
-| `order-online.php` | **Public** — customers can order delivery, COD, walang login |
-
-## Paano gumagana ang utang
-
-1. Order na kulang ang bayad → may `due`.
-2. Ang `due` ay pumapasok sa **customer balance** kapag *completed* ang order
-   (walk-in = agad; delivery = pag-click ng "Delivered ✓").
-3. Bawat bayad ay naitatala sa `utang_payments` at binabawas sa balance —
-   makikita lahat sa ledger ng customer.
-4. Online orders = COD: hindi pa utang hangga't hindi delivered.
-
-## Security notes
-
-- `service_role` key ay **server-side lang** (PHP) — hindi kailanman sa JavaScript/browser.
-- Lahat ng tables ay naka-RLS lock; tanging service key ang nakakadaan.
-- Lahat ng staff pages ay may session guard + CSRF token sa bawat form.
-- Lahat ng output ay naka-escape (`e()`); prices ay kinukuha server-side, hindi galing sa form.
-- Public order form ay may honeypot laban sa bots.
-
-## Sensible next builds (v2 ideas)
-
-- Auto-deduct ng inventory kapag may nabentang bagong container (link products → inventory items).
-- SMS notification pag "for delivery" na (Semaphore/Twilio API).
-- Products management UI (ngayon: i-edit sa Supabase table editor).
-- Weekly/monthly sales report page na may export to CSV.
-- Refund/void flow para sa completed orders (ngayon: manual adjustment sa Supabase).
+1. An order paid short has a `due` amount.
+2. The due joins the **customer balance** only when the order is *completed*
+   (walk-ins immediately; deliveries when you tap "Delivered ✓").
+3. Every payment is logged and deducted from the balance — the full trail is
+   in the customer's History.
+4. Paying more than the balance becomes **advance credit** (negative balance).
 
 ## Known simplifications
 
-- Balance updates are read-then-write (hindi atomic). Sa dami ng transaksyon ng
-  isang water station, hindi ito praktikal na isyu; kung lalaki ang scale,
-  ilipat sa isang Postgres function (`rpc`) ang balance math.
-- Isang role lang ang meaningful sa ngayon (`owner`/`staff` ay pareho ang access).
+- Balance updates are read-then-write, not atomic. With a single admin doing
+  entry this is a non-issue; if multiple staff ever use it at once, move the
+  balance math into a Postgres function (`rpc`).
+- Products are managed in the Supabase table editor (no in-app UI yet).

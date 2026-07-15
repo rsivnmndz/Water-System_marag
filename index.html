@@ -1,0 +1,1314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Water Station Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   WATER STATION DASHBOARD — design tokens
+   --brand and --ink are injected from the CONFIG block (white-label).
+   Palette: Filtered White #F4F9FA · Deep Well #0E2A3A ·
+            Mineral Aqua #0FA3B1 · Chalk Amber #C77D0A ·
+            Slate Board #1B2B34 · Hose Green #2E8B57
+   ================================================================ */
+:root {
+  --brand: #0FA3B1;
+  --ink:   #0E2A3A;
+  --paper: #F4F9FA;
+  --card:  #FFFFFF;
+  --line:  #D9E5E9;
+  --mut:   #5B7280;
+  --amber: #C77D0A;
+  --green: #2E8B57;
+  --red:   #B4432F;
+  --slate: #1B2B34;
+  --radius: 12px;
+  --disp: "Bricolage Grotesque", system-ui, sans-serif;
+  --body: "Figtree", system-ui, sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 15px;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--brand) 9%, transparent), transparent 60%),
+    var(--paper);
+}
+a { color: color-mix(in srgb, var(--brand) 75%, var(--ink)); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.15; margin: 0 0 .35em; }
+h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+h2 { font-size: 18px; font-weight: 600; }
+.sub { color: var(--mut); margin: 0 0 18px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------------- Shell: sidebar + main ---------------- */
+.shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.sidebar {
+  background: var(--ink);
+  color: #EAF4F6;
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: sticky; top: 0; height: 100vh;
+}
+.brand { display: flex; gap: 12px; align-items: center; }
+.brand-drop {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 70%, #fff), var(--brand));
+  border-radius: 50% 50% 50% 4px;   /* water drop */
+  transform: rotate(45deg);
+  box-shadow: inset -4px -4px 8px rgba(0,0,0,.18);
+}
+.brand-name { font-family: var(--disp); font-weight: 800; font-size: 16px; line-height: 1.2; }
+.brand-tag  { font-size: 11.5px; color: #9FB9C2; margin-top: 2px; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-link { color: #C7DBE1; padding: 9px 12px; border-radius: 8px; font-weight: 500; font-size: 14px; }
+.nav-link:hover { background: rgba(255,255,255,.07); text-decoration: none; }
+.nav-link.is-active { background: var(--brand); color: #06272B; font-weight: 700; }
+.sidebar-foot {
+  margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-size: 13px; color: #9FB9C2; border-top: 1px solid rgba(255,255,255,.12); padding-top: 14px;
+}
+.sidebar-foot .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout { color: #EAF4F6; opacity: .85; background: none; border: 0; cursor: pointer; font: inherit; }
+.logout:hover { text-decoration: underline; }
+.main { padding: 26px 30px 60px; max-width: 1120px; width: 100%; }
+
+/* ---------------- Cards, stats, grids ---------------- */
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px 20px; margin-bottom: 18px;
+}
+.grid { display: grid; gap: 14px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.stat { padding: 16px 18px; }
+.stat .label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+.stat .value { font-family: var(--disp); font-weight: 800; font-size: 26px; margin-top: 6px; }
+.stat .value.mono { font-family: var(--mono); font-weight: 600; font-size: 23px; }
+.stat.warn  { border-left: 4px solid var(--amber); }
+.stat.good  { border-left: 4px solid var(--green); }
+.stat.brand { border-left: 4px solid var(--brand); }
+
+/* ---------------- Signature: the credit chalkboard ---------------- */
+.chalkboard {
+  background:
+    radial-gradient(600px 200px at 20% 0%, rgba(255,255,255,.05), transparent 70%),
+    var(--slate);
+  color: #E9DFC8;
+  border-radius: var(--radius);
+  border: 6px solid #10202B;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.chalkboard .board-title {
+  font-family: var(--disp); font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; font-size: 13px; color: #F1E6CB;
+  border-bottom: 2px dashed rgba(233,223,200,.4);
+  padding-bottom: 8px; margin-bottom: 10px;
+}
+.chalk-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 7px 2px;
+  border-bottom: 1px dashed rgba(233,223,200,.22);
+  font-size: 14.5px;
+}
+.chalk-row:last-child { border-bottom: 0; }
+.chalk-row .amt { font-family: var(--mono); color: #F2B84B; font-weight: 600; white-space: nowrap; }
+.chalk-row a { color: #E9DFC8; }
+.chalk-total {
+  display: flex; justify-content: space-between; margin-top: 10px;
+  padding-top: 10px; border-top: 2px solid rgba(233,223,200,.45);
+  font-family: var(--disp); font-weight: 800;
+}
+.chalk-total .amt { font-family: var(--mono); color: #F2B84B; font-size: 18px; }
+.chalk-empty { color: #B9C7BF; font-size: 14px; padding: 8px 2px; }
+.chalk-pay { display: flex; gap: 6px; align-items: center; }
+.chalk-pay input {
+  width: 88px; background: rgba(255,255,255,.08); border: 1px solid rgba(233,223,200,.35);
+  color: #F2B84B; font-family: var(--mono); border-radius: 7px; padding: 5px 8px; font-size: 13px;
+}
+.chalk-pay .btn { padding: 5px 10px; font-size: 12.5px; }
+
+/* ---------------- Tables ---------------- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+  text-align: left; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--mut); font-weight: 700; padding: 8px 10px; border-bottom: 2px solid var(--line);
+  white-space: nowrap;
+}
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------------- Chips (statuses) ---------------- */
+.chip {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.chip-pending      { background: #FCF1DC; color: #8A5A06; }
+.chip-for_delivery { background: color-mix(in srgb, var(--brand) 16%, #fff); color: color-mix(in srgb, var(--brand) 70%, var(--ink)); }
+.chip-completed    { background: #E2F2E7; color: #1F6B41; }
+.chip-cancelled    { background: #ECEFF1; color: #62757F; }
+.chip-paid         { background: #E2F2E7; color: #1F6B41; }
+.chip-partial      { background: #FCF1DC; color: #8A5A06; }
+.chip-utang        { background: #F9E3DC; color: #93361F; }
+.chip-low          { background: #F9E3DC; color: #93361F; }
+
+/* ---------------- Buttons & forms ---------------- */
+.btn {
+  display: inline-block; border: 0; cursor: pointer;
+  background: var(--brand); color: #06272B;
+  font-family: var(--body); font-weight: 700; font-size: 14px;
+  padding: 10px 16px; border-radius: 9px;
+}
+.btn:hover { filter: brightness(1.06); text-decoration: none; }
+.btn:disabled { opacity: .55; cursor: wait; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn-ghost:hover { border-color: var(--brand); filter: none; }
+.btn-amber { background: var(--amber); color: #FFF6E8; }
+.btn-sm { padding: 6px 11px; font-size: 13px; border-radius: 7px; }
+.btn-block { width: 100%; text-align: center; }
+
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--ink); }
+input, select, textarea {
+  width: 100%; font-family: var(--body); font-size: 14.5px; color: var(--ink);
+  background: #fff; border: 1.5px solid var(--line); border-radius: 9px;
+  padding: 9px 11px;
+}
+input:focus, select:focus, textarea:focus, .btn:focus-visible, a:focus-visible {
+  outline: 2.5px solid color-mix(in srgb, var(--brand) 70%, #000);
+  outline-offset: 1.5px;
+}
+input[type=number] { font-family: var(--mono); }
+textarea { resize: vertical; min-height: 70px; }
+.field { margin-bottom: 14px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 140px; }
+.inline-form { display: flex; gap: 8px; align-items: center; }
+.inline-form input { width: 96px; }
+
+/* ---------------- POS quantity grid ---------------- */
+.qtygrid { display: grid; grid-template-columns: 1fr 92px 96px; gap: 8px 12px; align-items: center; }
+.qtygrid .pname { font-weight: 600; }
+.qtygrid .pprice { font-family: var(--mono); color: var(--mut); text-align: right; }
+.total-bar {
+  display: flex; justify-content: space-between; align-items: baseline;
+  background: color-mix(in srgb, var(--brand) 10%, #fff);
+  border: 1.5px dashed color-mix(in srgb, var(--brand) 45%, var(--line));
+  border-radius: 10px; padding: 12px 16px; margin: 14px 0;
+}
+.total-bar .t-label { font-weight: 700; }
+.total-bar .t-amt { font-family: var(--mono); font-weight: 600; font-size: 22px; }
+.hint { font-size: 12.5px; color: var(--mut); margin-top: 4px; }
+
+/* ---------------- Toolbar / tabs / flash ---------------- */
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+  border: 1.5px solid var(--line); color: var(--mut); background: #fff;
+}
+.tab:hover { text-decoration: none; border-color: var(--brand); }
+.tab.is-active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.flash { border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-weight: 600; font-size: 14px; }
+.flash-ok  { background: #E2F2E7; color: #1F6B41; }
+.flash-err { background: #F9E3DC; color: #93361F; }
+
+.muted { color: var(--mut); }
+.mt { margin-top: 18px; }
+.amt-neg { color: var(--red); }
+.amt-pos { color: var(--green); }
+.loading { color: var(--mut); padding: 40px 0; text-align: center; font-weight: 600; }
+
+/* ---------------- Login ---------------- */
+.hero-wrap {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background:
+    radial-gradient(900px 420px at 50% -10%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 65%),
+    var(--paper);
+}
+.hero-card { width: 100%; max-width: 420px; }
+.hero-card .card { padding: 28px; }
+.hero-brand { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; }
+
+/* ---------------- Mobile ---------------- */
+@media (max-width: 880px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; flex-direction: column; gap: 12px; padding: 14px 14px 10px; }
+  .nav { flex-direction: row; overflow-x: auto; padding-bottom: 6px; }
+  .nav-link { white-space: nowrap; font-size: 13.5px; padding: 8px 12px; }
+  .sidebar-foot { border-top: 0; padding-top: 0; }
+  .main { padding: 18px 14px 70px; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .qtygrid { grid-template-columns: 1fr 70px 84px; }
+  h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">Loading…</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================================================================
+   CONFIG — WHITE-LABEL: this is the ONLY block you edit per client.
+   The anon key is safe to publish: Row Level Security + disabled
+   sign-ups are what protect the data. NEVER put the service_role
+   key in this file.
+   ================================================================ */
+const CONFIG = {
+  BRAND_NAME:        'AquaFlow Water Station',
+  BRAND_TAGLINE:     'Clean water, everyday',
+  BRAND_COLOR:       '#0FA3B1',
+  BRAND_INK:         '#0E2A3A',
+  CURRENCY:          '₱',
+  SUPABASE_URL:      'https://YOUR-PROJECT-REF.supabase.co',
+  SUPABASE_ANON_KEY: 'YOUR-ANON-PUBLIC-KEY',
+};
+/* ================================================================ */
+
+document.documentElement.style.setProperty('--brand', CONFIG.BRAND_COLOR);
+document.documentElement.style.setProperty('--ink',   CONFIG.BRAND_INK);
+document.title = CONFIG.BRAND_NAME + ' — Dashboard';
+
+const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const app = document.getElementById('app');
+
+/* ---------------- Helpers ---------------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const peso = n => CONFIG.CURRENCY + (Number(n) || 0).toLocaleString('en-PH',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const MNL_OFFSET = 8 * 3600 * 1000; // Asia/Manila is UTC+8, no DST
+
+function manilaNow() { return new Date(Date.now() + MNL_OFFSET); }        // shifted clock (read via getUTC*)
+function manilaTodayStartISO() {
+  const m = manilaNow();
+  return new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), m.getUTCDate()) - MNL_OFFSET).toISOString();
+}
+function manilaTodayYMD() {
+  const m = manilaNow();
+  return m.getUTCFullYear() + '-' + String(m.getUTCMonth() + 1).padStart(2, '0') + '-' + String(m.getUTCDate()).padStart(2, '0');
+}
+const fmtDT = ts => ts ? new Date(ts).toLocaleString('en-PH',
+  { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+const fmtD = ts => ts ? new Date(ts + (ts.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('en-PH',
+  { timeZone: ts.length === 10 ? undefined : 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+const STATUS_LABEL  = { pending: 'Pending', for_delivery: 'For delivery', completed: 'Completed', cancelled: 'Cancelled' };
+const PAY_LABEL     = { paid: 'Paid', partial: 'Partial', utang: 'Credit' };
+const CATEGORIES    = { electricity: 'Electricity', water: 'Water', supplies: 'Supplies', salary: 'Salary', maintenance: 'Maintenance', others: 'Others' };
+
+const statusChip = s => `<span class="chip chip-${esc(s)}">${esc(STATUS_LABEL[s] || s)}</span>`;
+const payChip    = s => `<span class="chip chip-${esc(s)}">${esc(PAY_LABEL[s] || s)}</span>`;
+
+function payStatusFor(total, paid) {
+  if (paid >= total) return 'paid';
+  return paid > 0 ? 'partial' : 'utang';
+}
+
+function fail(error) { if (error) throw new Error(error.message || String(error)); }
+
+/* Flash: set once, consumed on next render */
+let FLASH = null;
+function flash(msg, type = 'ok') { FLASH = { msg, type }; }
+function flashHTML() {
+  if (!FLASH) return '';
+  const h = `<div class="flash flash-${FLASH.type}">${esc(FLASH.msg)}</div>`;
+  FLASH = null;
+  return h;
+}
+
+/* ---------------- Router ---------------- */
+const NAV = [
+  ['#/dashboard', 'Dashboard'],
+  ['#/order-new', 'New Order'],
+  ['#/orders',    'Orders'],
+  ['#/customers', 'Customers'],
+  ['#/credit',    'Credit'],
+  ['#/inventory', 'Inventory'],
+  ['#/expenses',  'Expenses'],
+];
+
+function route() {
+  const h = location.hash || '#/dashboard';
+  const parts = h.replace(/^#\//, '').split('/');
+  return { name: parts[0] || 'dashboard', arg: parts[1] || '' };
+}
+
+let SESSION = null;
+
+async function render() {
+  const { data } = await sb.auth.getSession();
+  SESSION = data.session;
+  if (!SESSION) return renderLogin();
+
+  const r = route();
+  const activeBase = '#/' + (r.name === 'customer' ? 'customers' : r.name);
+  app.innerHTML = `
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-drop"></div>
+        <div>
+          <div class="brand-name">${esc(CONFIG.BRAND_NAME)}</div>
+          <div class="brand-tag">${esc(CONFIG.BRAND_TAGLINE)}</div>
+        </div>
+      </div>
+      <nav class="nav">
+        ${NAV.map(([href, label]) =>
+          `<a class="nav-link${href === activeBase ? ' is-active' : ''}" href="${href}">${label}</a>`).join('')}
+      </nav>
+      <div class="sidebar-foot">
+        <span class="who" title="${esc(SESSION.user.email)}">${esc(SESSION.user.email)}</span>
+        <button class="logout" data-signout>Sign out</button>
+      </div>
+    </aside>
+    <main class="main" id="main"><div class="loading">Loading…</div></main>
+  </div>`;
+
+  const main = document.getElementById('main');
+  try {
+    const views = {
+      dashboard: viewDashboard, 'order-new': viewOrderNew, orders: viewOrders,
+      customers: viewCustomers, customer: viewCustomer, credit: viewCredit,
+      inventory: viewInventory, expenses: viewExpenses,
+    };
+    await (views[r.name] || viewDashboard)(main, r.arg);
+  } catch (err) {
+    main.innerHTML = `
+      <h1>Setup needed</h1>
+      <div class="card">
+        <p>Could not load data from Supabase. Three things to check:</p>
+        <p>1. Did you run <span class="mono">schema.sql</span> in the Supabase SQL Editor?<br>
+           2. Did you run <span class="mono">vercel-setup.sql</span> (the access policies)?<br>
+           3. Are <span class="mono">SUPABASE_URL</span> and <span class="mono">SUPABASE_ANON_KEY</span> correct in the CONFIG block?</p>
+        <p class="muted mono" style="font-size:12.5px;">${esc(err.message)}</p>
+      </div>`;
+  }
+}
+
+/* ---------------- Login ---------------- */
+function renderLogin() {
+  app.innerHTML = `
+  <div class="hero-wrap">
+    <div class="hero-card">
+      <div class="card">
+        <div class="hero-brand">
+          <div class="brand-drop"></div>
+          <div>
+            <div class="brand-name" style="font-size:19px;">${esc(CONFIG.BRAND_NAME)}</div>
+            <div class="muted" style="font-size:13px;">${esc(CONFIG.BRAND_TAGLINE)}</div>
+          </div>
+        </div>
+        ${flashHTML()}
+        <form data-action="login">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-block" type="submit">Sign in</button>
+        </form>
+        <p class="hint" style="margin-top:14px;">Admin access only. Accounts are created in Supabase &rarr; Authentication.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Dashboard ---------------- */
+async function viewDashboard(main) {
+  const start = manilaTodayStartISO();
+
+  const [today, pend, utangers, inv, recent] = await Promise.all([
+    sb.from('orders').select('total,amount_paid').gte('created_at', start).neq('status', 'cancelled'),
+    sb.from('orders').select('id', { count: 'exact', head: true }).in('status', ['pending', 'for_delivery']),
+    sb.from('customers').select('id,name,balance').gt('balance', 0).order('balance', { ascending: false }).limit(200),
+    sb.from('inventory_items').select('*').order('name'),
+    sb.from('orders').select('*,customers(name)').order('created_at', { ascending: false }).limit(8),
+  ]);
+  [today, utangers, inv, recent].forEach(r => fail(r.error)); fail(pend.error);
+
+  let salesToday = 0, collectedToday = 0;
+  for (const o of today.data) { salesToday += +o.total; collectedToday += +o.amount_paid; }
+  const utangTotal = utangers.data.reduce((s, c) => s + +c.balance, 0);
+  const utangTop = utangers.data.slice(0, 6);
+  const lowStock = inv.data.filter(i => +i.stock_qty <= +i.reorder_level);
+  const dateStr = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <h1>How's business today?</h1>
+  <p class="sub">${dateStr} · ${esc(CONFIG.BRAND_NAME)}</p>
+
+  <div class="grid grid-4">
+    <div class="card stat brand"><div class="label">Sales today</div><div class="value mono">${peso(salesToday)}</div></div>
+    <div class="card stat good"><div class="label">Collected today</div><div class="value mono">${peso(collectedToday)}</div></div>
+    <div class="card stat"><div class="label">Pending deliveries</div><div class="value">${pend.count || 0}</div></div>
+    <div class="card stat warn"><div class="label">Outstanding credit</div><div class="value mono">${peso(utangTotal)}</div></div>
+  </div>
+
+  <div class="grid grid-2 mt">
+    <div>
+      <div class="chalkboard">
+        <div class="board-title">Credit Board</div>
+        ${!utangTop.length
+          ? '<div class="chalk-empty">No outstanding credit. Clean books! 🎉</div>'
+          : utangTop.map(c => `
+            <div class="chalk-row">
+              <a href="#/customer/${c.id}">${esc(c.name)}</a>
+              <span class="amt">${peso(c.balance)}</span>
+            </div>`).join('') + `
+            <div class="chalk-total"><span>Total</span><span class="amt">${peso(utangTotal)}</span></div>`}
+      </div>
+      <a class="btn btn-ghost" href="#/credit">Open the full board</a>
+    </div>
+
+    <div class="card">
+      <h2>Running low on stock</h2>
+      ${!lowStock.length ? '<p class="muted">All stock levels are fine.</p>' : `
+        <div class="table-wrap"><table>
+          <tr><th>Item</th><th class="num">Stock</th><th class="num">Reorder at</th></tr>
+          ${lowStock.map(it => `
+            <tr>
+              <td>${esc(it.name)} <span class="chip chip-low">Low</span></td>
+              <td class="num">${+it.stock_qty} ${esc(it.unit)}</td>
+              <td class="num">${+it.reorder_level}</td>
+            </tr>`).join('')}
+        </table></div>
+        <a class="btn btn-ghost btn-sm mt" href="#/inventory" style="display:inline-block;">Fix stock</a>`}
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="toolbar" style="margin-bottom:8px;">
+      <h2 style="margin:0;">Recent orders</h2>
+      <a class="btn btn-sm" href="#/order-new">+ New order</a>
+    </div>
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Customer</th><th>Type</th><th>Status</th><th>Payment</th><th class="num">Total</th><th>Time</th></tr>
+      ${!recent.data.length ? '<tr><td colspan="7" class="muted">No orders yet. Start with "New Order".</td></tr>' : ''}
+      ${recent.data.map(o => {
+        const cname = o.customers?.name || (o.walkin_name || 'Walk-in');
+        return `<tr>
+          <td class="mono">${o.id}</td>
+          <td>${esc(cname)}</td>
+          <td>${esc(o.order_type === 'walkin' ? 'walk-in' : o.order_type)}</td>
+          <td>${statusChip(o.status)}</td>
+          <td>${payChip(o.payment_status)}</td>
+          <td class="num">${peso(o.total)}</td>
+          <td class="muted">${fmtDT(o.created_at)}</td>
+        </tr>`;
+      }).join('')}
+    </table></div>
+  </div>`;
+}
+
+/* ---------------- New Order (POS) ---------------- */
+let POS_PRODUCTS = [];
+
+async function viewOrderNew(main) {
+  const [prods, custs] = await Promise.all([
+    sb.from('products').select('*').eq('is_active', true).order('sort_order'),
+    sb.from('customers').select('id,name,phone').order('name').limit(1000),
+  ]);
+  fail(prods.error); fail(custs.error);
+  POS_PRODUCTS = prods.data;
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <h1>New Order</h1>
+  <p class="sub">Set quantities, choose walk-in or delivery, then save.</p>
+
+  <form data-action="order-create" id="posForm">
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Items</h2>
+        <div class="qtygrid">
+          ${prods.data.map(p => `
+            <div class="pname">${esc(p.name)}</div>
+            <div class="pprice">${peso(p.price)}</div>
+            <input type="number" name="qty_${p.id}" min="0" step="1" value="0"
+                   class="qty" data-price="${+p.price}" inputmode="numeric" aria-label="Quantity for ${esc(p.name)}">
+          `).join('')}
+        </div>
+        <div class="total-bar">
+          <span class="t-label">Total</span>
+          <span class="t-amt" id="totalOut">${peso(0)}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Customer &amp; Payment</h2>
+
+        <div class="field">
+          <label>Order type</label>
+          <div class="row">
+            <label style="font-weight:500;"><input type="radio" name="order_type" value="walkin" checked style="width:auto;margin-right:6px;">Walk-in / pickup</label>
+            <label style="font-weight:500;"><input type="radio" name="order_type" value="delivery" style="width:auto;margin-right:6px;">Delivery</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="customer_id">Customer (required for credit or delivery)</label>
+          <select id="customer_id" name="customer_id">
+            <option value="0">— Walk-in / not on the list —</option>
+            ${custs.data.map(c => `<option value="${c.id}">${esc(c.name)}${c.phone ? ' · ' + esc(c.phone) : ''}</option>`).join('')}
+          </select>
+          <div class="hint">Not on the list yet? <a href="#/customers">Add them in Customers</a> first.</div>
+        </div>
+
+        <div class="field">
+          <label for="walkin_name">Name (optional, for walk-ins without a record)</label>
+          <input id="walkin_name" name="walkin_name" placeholder="e.g. Maria Santos">
+        </div>
+
+        <div class="field">
+          <label for="amount_paid">Amount paid now</label>
+          <input id="amount_paid" name="amount_paid" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+          <div class="hint" id="payHint">0 = full credit · more than the total = change due</div>
+        </div>
+
+        <div class="field">
+          <label for="notes">Notes (optional)</label>
+          <textarea id="notes" name="notes" placeholder="e.g. Leave at the gate, 2nd floor"></textarea>
+        </div>
+
+        <button class="btn btn-block" type="submit">Save order</button>
+      </div>
+    </div>
+  </form>`;
+
+  const qtys = main.querySelectorAll('.qty');
+  const paid = main.querySelector('#amount_paid');
+  const out  = main.querySelector('#totalOut');
+  const hint = main.querySelector('#payHint');
+  function recalc() {
+    let total = 0;
+    qtys.forEach(q => { total += (parseInt(q.value, 10) || 0) * parseFloat(q.dataset.price); });
+    out.textContent = peso(total);
+    const p = parseFloat(paid.value) || 0;
+    if (total <= 0)      hint.textContent = 'Add items first.';
+    else if (p >= total) hint.textContent = 'Change: ' + peso(p - total);
+    else if (p > 0)      hint.textContent = 'Partial — remaining credit: ' + peso(total - p);
+    else                 hint.textContent = 'Full credit: ' + peso(total) + ' (customer record required)';
+  }
+  qtys.forEach(q => q.addEventListener('input', recalc));
+  paid.addEventListener('input', recalc);
+  recalc();
+}
+
+/* ---------------- Orders ---------------- */
+async function viewOrders(main, arg) {
+  const f = arg || 'open';
+  let q = sb.from('orders').select('*,customers(name),order_items(product_name,qty)')
+            .order('created_at', { ascending: false }).limit(200);
+  if (f === 'open')           q = q.in('status', ['pending', 'for_delivery']);
+  else if (f === 'completed') q = q.eq('status', 'completed');
+  else if (f === 'unpaid')    q = q.in('payment_status', ['utang', 'partial']);
+  else if (f === 'cancelled') q = q.eq('status', 'cancelled');
+
+  const { data: orders, error } = await q; fail(error);
+
+  const tabs = { open: 'Open', unpaid: 'Unpaid', completed: 'Completed', cancelled: 'Cancelled', all: 'All' };
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <div class="toolbar">
+    <div>
+      <h1 style="margin-bottom:2px;">Orders</h1>
+      <p class="sub" style="margin:0;">Track every order from pending to delivered and paid.</p>
+    </div>
+    <a class="btn" href="#/order-new">+ New order</a>
+  </div>
+
+  <div class="tabs" style="margin-bottom:16px;">
+    ${Object.entries(tabs).map(([k, label]) =>
+      `<a class="tab${f === k ? ' is-active' : ''}" href="#/orders/${k}">${label}</a>`).join('')}
+  </div>
+
+  <div class="card">
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Customer</th><th>Items</th><th>Status</th><th class="num">Total</th><th class="num">Paid</th><th>Actions</th></tr>
+      ${!orders.length ? '<tr><td colspan="7" class="muted">No orders in this filter.</td></tr>' : ''}
+      ${orders.map(o => {
+        const cname = o.customers?.name || (o.walkin_name || 'Walk-in');
+        const due = +o.total - +o.amount_paid;
+        const items = (o.order_items || []).map(it => it.qty + '× ' + it.product_name).join(', ');
+        let actions = '';
+        if (o.status === 'pending')
+          actions += `<form data-action="order-advance" style="display:inline;"><input type="hidden" name="order_id" value="${o.id}"><button class="btn btn-sm">Send out</button></form>`;
+        else if (o.status === 'for_delivery')
+          actions += `<form data-action="order-advance" style="display:inline;"><input type="hidden" name="order_id" value="${o.id}"><button class="btn btn-sm">Delivered ✓</button></form>`;
+        if (due > 0 && o.status !== 'cancelled')
+          actions += `<form data-action="order-pay" class="inline-form" style="margin-top:6px;">
+              <input type="hidden" name="order_id" value="${o.id}">
+              <input type="number" name="amount" min="0.01" step="0.01" value="${due.toFixed(2)}" inputmode="decimal" aria-label="Payment amount">
+              <button class="btn btn-sm btn-amber">Pay</button>
+            </form>`;
+        if (o.status === 'pending' || o.status === 'for_delivery')
+          actions += `<form data-action="order-cancel" style="display:inline;"><input type="hidden" name="order_id" value="${o.id}"><button class="btn btn-sm btn-ghost" style="margin-top:6px;">Cancel</button></form>`;
+        return `<tr>
+          <td class="mono">${o.id}</td>
+          <td>${esc(cname)}<div class="muted" style="font-size:12px;">${esc(o.order_type === 'walkin' ? 'walk-in' : o.order_type)} · ${fmtDT(o.created_at)}</div></td>
+          <td style="max-width:260px;">${esc(items)}</td>
+          <td>${statusChip(o.status)}<br><span style="display:inline-block;margin-top:4px;">${payChip(o.payment_status)}</span></td>
+          <td class="num">${peso(o.total)}</td>
+          <td class="num">${peso(o.amount_paid)}</td>
+          <td style="min-width:210px;">${actions || '<span class="muted">—</span>'}</td>
+        </tr>`;
+      }).join('')}
+    </table></div>
+  </div>`;
+}
+
+/* ---------------- Customers ---------------- */
+async function viewCustomers(main, _arg) {
+  const qparam = (new URLSearchParams(location.hash.split('?')[1] || '')).get('q') || '';
+  let q = sb.from('customers').select('*').order('name').limit(500);
+  if (qparam) {
+    const safe = qparam.replace(/[,()]/g, ' ').trim();
+    if (safe) q = q.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%`);
+  }
+  const { data: custs, error } = await q; fail(error);
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <div class="toolbar">
+    <div>
+      <h1 style="margin-bottom:2px;">Customer Records</h1>
+      <p class="sub" style="margin:0;">Regulars, balances, and contact details in one place.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <form data-action="customer-search" class="inline-form" style="margin-bottom:14px;">
+        <input name="q" placeholder="Search name or phone…" value="${esc(qparam)}" style="width:auto;flex:1;">
+        <button class="btn btn-sm">Search</button>
+      </form>
+      <div class="table-wrap"><table>
+        <tr><th>Name</th><th>Phone</th><th class="num">Balance</th></tr>
+        ${!custs.length ? '<tr><td colspan="3" class="muted">No customers found.</td></tr>' : ''}
+        ${custs.map(c => `
+          <tr>
+            <td><a href="#/customer/${c.id}">${esc(c.name)}</a></td>
+            <td class="muted">${esc(c.phone || '—')}</td>
+            <td class="num ${+c.balance > 0 ? 'amt-neg' : ''}">${peso(c.balance)}</td>
+          </tr>`).join('')}
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Add customer</h2>
+      <form data-action="customer-add">
+        <div class="field"><label>Name</label><input name="name" required placeholder="e.g. Maria Santos"></div>
+        <div class="row">
+          <div class="field"><label>Phone</label><input name="phone" placeholder="09xx xxx xxxx"></div>
+        </div>
+        <div class="field"><label>Address</label><input name="address" placeholder="House no., street, barangay"></div>
+        <div class="field"><label>Notes</label><textarea name="notes" placeholder="e.g. Regular — 3 slim refills every Saturday"></textarea></div>
+        <button class="btn">Save customer</button>
+      </form>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Customer view ---------------- */
+async function viewCustomer(main, arg) {
+  const id = parseInt(arg, 10);
+  if (!id) { location.hash = '#/customers'; return; }
+
+  const [cres, ores, pres] = await Promise.all([
+    sb.from('customers').select('*').eq('id', id).limit(1),
+    sb.from('orders').select('id,total,amount_paid,status,payment_status,created_at').eq('customer_id', id).order('created_at', { ascending: false }).limit(200),
+    sb.from('utang_payments').select('*').eq('customer_id', id).order('created_at', { ascending: false }).limit(200),
+  ]);
+  fail(cres.error); fail(ores.error); fail(pres.error);
+  const cust = cres.data[0];
+  if (!cust) { location.hash = '#/customers'; return; }
+
+  const ledger = [
+    ...ores.data.map(o => ({ ts: o.created_at, kind: 'order', row: o })),
+    ...pres.data.map(p => ({ ts: p.created_at, kind: 'payment', row: p })),
+  ].sort((a, b) => b.ts.localeCompare(a.ts));
+
+  const bal = +cust.balance;
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <p style="margin-bottom:6px;"><a href="#/customers">← Back to customers</a></p>
+  <h1>${esc(cust.name)}</h1>
+  <p class="sub">${esc(cust.phone || 'No phone')} · ${esc(cust.address || 'No address')}</p>
+
+  <div class="grid grid-2">
+    <div>
+      <div class="chalkboard">
+        <div class="board-title">Balance — ${esc(cust.name)}</div>
+        <div class="chalk-total" style="border-top:0;margin-top:0;padding-top:0;">
+          <span>${bal < 0 ? 'Advance credit' : 'Outstanding'}</span>
+          <span class="amt">${peso(Math.abs(bal))}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Record a payment</h2>
+        <form data-action="customer-pay">
+          <input type="hidden" name="customer_id" value="${cust.id}">
+          <div class="row">
+            <div class="field"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal"></div>
+            <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. GCash, cash"></div>
+          </div>
+          <button class="btn btn-amber">Save payment</button>
+          <div class="hint">Paying more than the balance is fine — it becomes advance credit.</div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Edit details</h2>
+        <form data-action="customer-edit">
+          <input type="hidden" name="customer_id" value="${cust.id}">
+          <div class="field"><label>Name</label><input name="name" value="${esc(cust.name)}" required></div>
+          <div class="field"><label>Phone</label><input name="phone" value="${esc(cust.phone || '')}"></div>
+          <div class="field"><label>Address</label><input name="address" value="${esc(cust.address || '')}"></div>
+          <div class="field"><label>Notes</label><textarea name="notes">${esc(cust.notes || '')}</textarea></div>
+          <button class="btn btn-ghost">Update info</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>History</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Date</th><th>Entry</th><th class="num">Amount</th></tr>
+        ${!ledger.length ? '<tr><td colspan="3" class="muted">No activity yet.</td></tr>' : ''}
+        ${ledger.map(e => {
+          if (e.kind === 'order') {
+            const o = e.row;
+            return `<tr>
+              <td class="muted">${fmtDT(e.ts)}</td>
+              <td>Order <span class="mono">#${o.id}</span> ${statusChip(o.status)} ${payChip(o.payment_status)}</td>
+              <td class="num">${peso(o.total)}</td>
+            </tr>`;
+          }
+          const p = e.row;
+          return `<tr>
+            <td class="muted">${fmtDT(e.ts)}</td>
+            <td>Payment${p.note ? ' — ' + esc(p.note) : ''}</td>
+            <td class="num amt-pos">−${peso(p.amount)}</td>
+          </tr>`;
+        }).join('')}
+      </table></div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Credit tracker ---------------- */
+async function viewCredit(main) {
+  const start = manilaTodayStartISO();
+  const [ures, tres] = await Promise.all([
+    sb.from('customers').select('id,name,balance').gt('balance', 0).order('balance', { ascending: false }).limit(500),
+    sb.from('utang_payments').select('amount').gte('created_at', start),
+  ]);
+  fail(ures.error); fail(tres.error);
+
+  const total = ures.data.reduce((s, c) => s + +c.balance, 0);
+  const collected = tres.data.reduce((s, p) => s + +p.amount, 0);
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <h1>Credit Tracker</h1>
+  <p class="sub">Outstanding balances, straight from the board.</p>
+
+  <div class="grid grid-2">
+    <div class="card stat warn"><div class="label">Outstanding credit</div><div class="value mono">${peso(total)}</div></div>
+    <div class="card stat good"><div class="label">Collected today</div><div class="value mono">${peso(collected)}</div></div>
+  </div>
+
+  <div class="chalkboard mt">
+    <div class="board-title">Credit Board — full list</div>
+    ${!ures.data.length ? '<div class="chalk-empty">No outstanding credit. Clean books! 🎉</div>' :
+      ures.data.map(c => `
+        <div class="chalk-row">
+          <a href="#/customer/${c.id}">${esc(c.name)}</a>
+          <span class="chalk-pay">
+            <form data-action="quickpay" class="chalk-pay">
+              <input type="hidden" name="customer_id" value="${c.id}">
+              <input type="hidden" name="balance" value="${+c.balance}">
+              <input type="number" name="amount" min="0.01" step="0.01" value="${(+c.balance).toFixed(2)}" inputmode="decimal" aria-label="Payment for ${esc(c.name)}">
+              <button class="btn btn-sm btn-amber">Pay</button>
+            </form>
+            <span class="amt">${peso(c.balance)}</span>
+          </span>
+        </div>`).join('') + `
+      <div class="chalk-total"><span>Total</span><span class="amt">${peso(total)}</span></div>`}
+  </div>
+
+  <div class="card">
+    <h2>How credit works here</h2>
+    <p>An unpaid amount joins the customer's balance only when the order is <strong>completed</strong> — walk-ins right away, deliveries when you tap "Delivered ✓". Every payment is logged in the customer's history and deducted from the balance. Paying more than the balance turns into advance credit.</p>
+  </div>`;
+}
+
+/* ---------------- Inventory ---------------- */
+async function viewInventory(main) {
+  const [ires, mres] = await Promise.all([
+    sb.from('inventory_items').select('*').order('name'),
+    sb.from('inventory_movements').select('*,inventory_items(name)').order('created_at', { ascending: false }).limit(12),
+  ]);
+  fail(ires.error); fail(mres.error);
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <h1>Inventory</h1>
+  <p class="sub">Containers, caps, and seals — adjust stock and keep the movement log honest.</p>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Stock levels</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Item</th><th class="num">Stock</th><th class="num">Reorder at</th><th>Adjust</th></tr>
+        ${!ires.data.length ? '<tr><td colspan="4" class="muted">No items yet.</td></tr>' : ''}
+        ${ires.data.map(it => `
+          <tr>
+            <td>${esc(it.name)}${+it.stock_qty <= +it.reorder_level ? ' <span class="chip chip-low">Low</span>' : ''}</td>
+            <td class="num">${+it.stock_qty} ${esc(it.unit)}</td>
+            <td class="num">${+it.reorder_level}</td>
+            <td>
+              <form data-action="inv-adjust" class="inline-form">
+                <input type="hidden" name="item_id" value="${it.id}">
+                <input type="hidden" name="stock_qty" value="${+it.stock_qty}">
+                <input type="number" name="change" step="1" placeholder="+/−" required aria-label="Adjustment for ${esc(it.name)}" style="width:74px;">
+                <input name="reason" placeholder="Reason" style="width:120px;">
+                <button class="btn btn-sm btn-ghost">Apply</button>
+              </form>
+            </td>
+          </tr>`).join('')}
+      </table></div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Add item</h2>
+        <form data-action="inv-add">
+          <div class="field"><label>Item name</label><input name="name" required placeholder="e.g. Heat-Shrink Seals"></div>
+          <div class="row">
+            <div class="field"><label>Unit</label><input name="unit" value="pcs"></div>
+            <div class="field"><label>Starting stock</label><input name="stock_qty" type="number" step="1" value="0"></div>
+            <div class="field"><label>Reorder at</label><input name="reorder_level" type="number" step="1" value="0"></div>
+          </div>
+          <button class="btn">Save item</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Recent movements</h2>
+        <div class="table-wrap"><table>
+          <tr><th>When</th><th>Item</th><th class="num">Change</th><th>Reason</th></tr>
+          ${!mres.data.length ? '<tr><td colspan="4" class="muted">No movements yet.</td></tr>' : ''}
+          ${mres.data.map(m => `
+            <tr>
+              <td class="muted">${fmtDT(m.created_at)}</td>
+              <td>${esc(m.inventory_items?.name || '—')}</td>
+              <td class="num ${+m.change_qty >= 0 ? 'amt-pos' : 'amt-neg'}">${+m.change_qty > 0 ? '+' : ''}${+m.change_qty}</td>
+              <td class="muted">${esc(m.reason || '—')}</td>
+            </tr>`).join('')}
+        </table></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Expenses ---------------- */
+async function viewExpenses(main, arg) {
+  const ym = /^\d{4}-\d{2}$/.test(arg) ? arg : manilaTodayYMD().slice(0, 7);
+  const [y, m] = ym.split('-').map(Number);
+  const startD = `${ym}-01`;
+  const next = new Date(Date.UTC(y, m, 1)); // month is 1-based here → next month
+  const endD = next.toISOString().slice(0, 10);
+  const prevYM = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+  const nextYM = next.toISOString().slice(0, 7);
+  const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  const { data: rows, error } = await sb.from('expenses').select('*')
+    .gte('expense_date', startD).lt('expense_date', endD)
+    .order('expense_date', { ascending: false }).order('created_at', { ascending: false });
+  fail(error);
+
+  const byCat = {}; let total = 0;
+  for (const r of rows) { byCat[r.category] = (byCat[r.category] || 0) + +r.amount; total += +r.amount; }
+
+  main.innerHTML = `
+  ${flashHTML()}
+  <div class="toolbar">
+    <div>
+      <h1 style="margin-bottom:2px;">Expenses</h1>
+      <p class="sub" style="margin:0;">Track the monthly cost of running the station.</p>
+    </div>
+    <div class="tabs">
+      <a class="tab" href="#/expenses/${prevYM}">‹</a>
+      <span class="tab is-active">${monthLabel}</span>
+      <a class="tab" href="#/expenses/${nextYM}">›</a>
+    </div>
+  </div>
+
+  <div class="grid grid-4">
+    ${Object.entries(CATEGORIES).map(([k, label]) => `
+      <div class="card stat"><div class="label">${label}</div><div class="value mono" style="font-size:18px;">${peso(byCat[k] || 0)}</div></div>
+    `).join('')}
+    <div class="card stat warn"><div class="label">Total — ${monthLabel}</div><div class="value mono" style="font-size:18px;">${peso(total)}</div></div>
+  </div>
+
+  <div class="grid grid-2 mt">
+    <div class="card">
+      <h2>Add expense</h2>
+      <form data-action="expense-add">
+        <input type="hidden" name="ym" value="${ym}">
+        <div class="field"><label>Description</label><input name="description" required placeholder="e.g. Meralco bill"></div>
+        <div class="row">
+          <div class="field"><label>Category</label>
+            <select name="category">
+              ${Object.entries(CATEGORIES).map(([k, label]) => `<option value="${k}">${label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal"></div>
+          <div class="field"><label>Date</label><input name="expense_date" type="date" value="${manilaTodayYMD()}" required></div>
+        </div>
+        <button class="btn">Save expense</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>${monthLabel}</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Date</th><th>Description</th><th>Category</th><th class="num">Amount</th></tr>
+        ${!rows.length ? '<tr><td colspan="4" class="muted">No expenses recorded this month.</td></tr>' : ''}
+        ${rows.map(r => `
+          <tr>
+            <td class="muted">${fmtD(r.expense_date)}</td>
+            <td>${esc(r.description)}</td>
+            <td><span class="chip chip-cancelled">${esc(CATEGORIES[r.category] || r.category)}</span></td>
+            <td class="num">${peso(r.amount)}</td>
+          </tr>`).join('')}
+      </table></div>
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   ACTIONS — all writes live here. Business rules match the
+   original system: credit joins the balance only at completion.
+   ================================================================ */
+const actions = {
+
+  async 'login'(fd) {
+    const { error } = await sb.auth.signInWithPassword({
+      email: fd.get('email'), password: fd.get('password'),
+    });
+    if (error) { flash('Sign-in failed: ' + error.message, 'err'); renderLogin(); return; }
+    location.hash = '#/dashboard';
+    render();
+  },
+
+  async 'order-create'(fd) {
+    const items = [];
+    let total = 0;
+    for (const p of POS_PRODUCTS) {
+      const q = parseInt(fd.get('qty_' + p.id), 10) || 0;
+      if (q <= 0) continue;
+      const sub = q * +p.price;
+      total += sub;
+      items.push({ product_id: p.id, product_name: p.name, qty: q, price: +p.price, subtotal: sub });
+    }
+    if (!items.length) { flash('The order is empty — set a quantity on at least one item.', 'err'); render(); return; }
+
+    const customer_id = parseInt(fd.get('customer_id'), 10) || 0;
+    const order_type  = fd.get('order_type') === 'delivery' ? 'delivery' : 'walkin';
+    const tendered    = Math.max(0, parseFloat(fd.get('amount_paid')) || 0);
+    const paid = Math.min(tendered, total);
+    const due  = total - paid;
+
+    if (due > 0 && !customer_id) {
+      flash('There is a remaining balance of ' + peso(due) + ' — pick a customer record so the credit can be listed.', 'err');
+      render(); return;
+    }
+    if (order_type === 'delivery' && !customer_id) {
+      flash('Deliveries need a customer record (for the address and follow-ups).', 'err');
+      render(); return;
+    }
+
+    const isWalkin = order_type === 'walkin';
+    const { data: created, error } = await sb.from('orders').insert({
+      customer_id: customer_id || null,
+      walkin_name: (fd.get('walkin_name') || '').trim(),
+      order_type,
+      status: isWalkin ? 'completed' : 'pending',
+      total,
+      amount_paid: paid,
+      payment_status: due <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'utang'),
+      source: 'counter',
+      notes: (fd.get('notes') || '').trim(),
+      delivered_at: isWalkin ? new Date().toISOString() : null,
+    }).select();
+    fail(error);
+    const orderId = created[0].id;
+
+    const { error: e2 } = await sb.from('order_items').insert(items.map(it => ({ ...it, order_id: orderId })));
+    fail(e2);
+
+    // Credit joins the balance only once the order is completed.
+    // Walk-ins complete right away; deliveries settle on "Delivered ✓".
+    if (isWalkin && due > 0 && customer_id) {
+      const { data: c, error: e3 } = await sb.from('customers').select('balance').eq('id', customer_id).limit(1);
+      fail(e3);
+      const { error: e4 } = await sb.from('customers').update({ balance: +(c[0]?.balance || 0) + due }).eq('id', customer_id);
+      fail(e4);
+    }
+
+    flash(`Order #${orderId} saved — ${peso(total)} (${PAY_LABEL[due <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'utang')]}).`);
+    location.hash = '#/orders';
+    if (route().name === 'orders') render();
+  },
+
+  async 'order-advance'(fd) {
+    const id = parseInt(fd.get('order_id'), 10);
+    const { data: rows, error } = await sb.from('orders').select('*').eq('id', id).limit(1);
+    fail(error);
+    const order = rows[0];
+    if (!order) throw new Error('Order not found.');
+
+    if (order.status === 'pending') {
+      const { error: e } = await sb.from('orders').update({ status: 'for_delivery' }).eq('id', id);
+      fail(e);
+      flash(`Order #${id} — out for delivery.`);
+    } else if (order.status === 'for_delivery') {
+      const { error: e } = await sb.from('orders').update({ status: 'completed', delivered_at: new Date().toISOString() }).eq('id', id);
+      fail(e);
+      const due = +order.total - +order.amount_paid;
+      if (due > 0 && order.customer_id) {
+        const { data: c, error: e2 } = await sb.from('customers').select('balance').eq('id', order.customer_id).limit(1);
+        fail(e2);
+        const { error: e3 } = await sb.from('customers').update({ balance: +(c[0]?.balance || 0) + due }).eq('id', order.customer_id);
+        fail(e3);
+        flash(`Order #${id} delivered. ${peso(due)} added to the customer's credit.`);
+      } else {
+        flash(`Order #${id} delivered. ✓`);
+      }
+    }
+    render();
+  },
+
+  async 'order-pay'(fd) {
+    const id = parseInt(fd.get('order_id'), 10);
+    const { data: rows, error } = await sb.from('orders').select('*').eq('id', id).limit(1);
+    fail(error);
+    const order = rows[0];
+    if (!order) throw new Error('Order not found.');
+
+    const due = +order.total - +order.amount_paid;
+    const amt = Math.min(Math.max(0, parseFloat(fd.get('amount')) || 0), due);
+    if (amt <= 0) throw new Error('Invalid amount.');
+
+    const newPaid = +order.amount_paid + amt;
+    const { error: e } = await sb.from('orders').update({
+      amount_paid: newPaid,
+      payment_status: payStatusFor(+order.total, newPaid),
+    }).eq('id', id);
+    fail(e);
+
+    // If completed, the credit is already on the customer balance:
+    // log the payment and deduct it. If still pending, it's just an
+    // advance payment — the balance hasn't been touched yet.
+    if (order.status === 'completed' && order.customer_id) {
+      const { error: e2 } = await sb.from('utang_payments').insert({
+        customer_id: order.customer_id, order_id: id, amount: amt, note: 'Payment for order #' + id,
+      });
+      fail(e2);
+      const { data: c, error: e3 } = await sb.from('customers').select('balance').eq('id', order.customer_id).limit(1);
+      fail(e3);
+      const { error: e4 } = await sb.from('customers').update({ balance: +(c[0]?.balance || 0) - amt }).eq('id', order.customer_id);
+      fail(e4);
+    }
+    flash(`Received ${peso(amt)} for order #${id}.`);
+    render();
+  },
+
+  async 'order-cancel'(fd) {
+    const id = parseInt(fd.get('order_id'), 10);
+    if (!confirm('Cancel order #' + id + '?')) return;
+    const { data: rows, error } = await sb.from('orders').select('status').eq('id', id).limit(1);
+    fail(error);
+    if (rows[0]?.status === 'completed') throw new Error('Completed orders can\'t be cancelled.');
+    const { error: e } = await sb.from('orders').update({ status: 'cancelled' }).eq('id', id);
+    fail(e);
+    flash(`Order #${id} cancelled.`);
+    render();
+  },
+
+  async 'customer-search'(fd) {
+    const q = (fd.get('q') || '').trim();
+    const target = '#/customers' + (q ? '?q=' + encodeURIComponent(q) : '');
+    if (location.hash === target) render(); else location.hash = target;
+  },
+
+  async 'customer-add'(fd) {
+    const name = (fd.get('name') || '').trim();
+    if (!name) throw new Error('Name is required.');
+    const { error } = await sb.from('customers').insert({
+      name,
+      phone: (fd.get('phone') || '').trim(),
+      address: (fd.get('address') || '').trim(),
+      notes: (fd.get('notes') || '').trim(),
+    });
+    fail(error);
+    flash(`Customer "${name}" saved.`);
+    render();
+  },
+
+  async 'customer-edit'(fd) {
+    const id = parseInt(fd.get('customer_id'), 10);
+    const { error } = await sb.from('customers').update({
+      name: (fd.get('name') || '').trim(),
+      phone: (fd.get('phone') || '').trim(),
+      address: (fd.get('address') || '').trim(),
+      notes: (fd.get('notes') || '').trim(),
+    }).eq('id', id);
+    fail(error);
+    flash('Customer info updated.');
+    render();
+  },
+
+  async 'customer-pay'(fd) {
+    const id  = parseInt(fd.get('customer_id'), 10);
+    const amt = parseFloat(fd.get('amount')) || 0;
+    if (amt <= 0) throw new Error('Invalid amount.');
+
+    const { data: rows, error } = await sb.from('customers').select('balance').eq('id', id).limit(1);
+    fail(error);
+    if (!rows[0]) throw new Error('Customer not found.');
+
+    const { error: e2 } = await sb.from('utang_payments').insert({
+      customer_id: id, amount: amt, note: (fd.get('note') || '').trim() || 'Balance payment',
+    });
+    fail(e2);
+    const newBal = +rows[0].balance - amt;
+    const { error: e3 } = await sb.from('customers').update({ balance: newBal }).eq('id', id);
+    fail(e3);
+
+    let msg = `Received payment of ${peso(amt)}.`;
+    if (newBal < 0) msg += ` Advance credit: ${peso(Math.abs(newBal))}.`;
+    flash(msg);
+    render();
+  },
+
+  async 'quickpay'(fd) {
+    return actions['customer-pay'](fd);
+  },
+
+  async 'inv-adjust'(fd) {
+    const id     = parseInt(fd.get('item_id'), 10);
+    const change = parseFloat(fd.get('change')) || 0;
+    if (!change) throw new Error('Adjustment can\'t be zero.');
+    const stock = parseFloat(fd.get('stock_qty')) || 0;
+    if (stock + change < 0) throw new Error('Stock can\'t go below zero.');
+
+    const { error } = await sb.from('inventory_movements').insert({
+      item_id: id, change_qty: change, reason: (fd.get('reason') || '').trim(),
+    });
+    fail(error);
+    const { error: e2 } = await sb.from('inventory_items').update({ stock_qty: stock + change }).eq('id', id);
+    fail(e2);
+    flash(`Stock ${change > 0 ? 'added' : 'deducted'}: ${change > 0 ? '+' : ''}${change}.`);
+    render();
+  },
+
+  async 'inv-add'(fd) {
+    const name = (fd.get('name') || '').trim();
+    if (!name) throw new Error('Item name is required.');
+    const { error } = await sb.from('inventory_items').insert({
+      name,
+      unit: (fd.get('unit') || 'pcs').trim() || 'pcs',
+      stock_qty: parseFloat(fd.get('stock_qty')) || 0,
+      reorder_level: parseFloat(fd.get('reorder_level')) || 0,
+    });
+    fail(error);
+    flash(`Item "${name}" saved.`);
+    render();
+  },
+
+  async 'expense-add'(fd) {
+    const desc = (fd.get('description') || '').trim();
+    const amt  = parseFloat(fd.get('amount')) || 0;
+    if (!desc) throw new Error('Description is required.');
+    if (amt <= 0) throw new Error('Invalid amount.');
+    const { error } = await sb.from('expenses').insert({
+      description: desc,
+      category: fd.get('category') || 'others',
+      amount: amt,
+      expense_date: fd.get('expense_date') || manilaTodayYMD(),
+    });
+    fail(error);
+    flash(`Expense saved — ${peso(amt)}.`);
+    render();
+  },
+};
+
+/* ---------------- Event wiring ---------------- */
+document.addEventListener('submit', async ev => {
+  const form = ev.target.closest('form[data-action]');
+  if (!form) return;
+  ev.preventDefault();
+  const name = form.dataset.action;
+  const btn = form.querySelector('button[type=submit], button:not([type])');
+  if (btn) btn.disabled = true;
+  try {
+    await actions[name](new FormData(form));
+  } catch (err) {
+    flash(err.message || String(err), 'err');
+    render();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
+
+document.addEventListener('click', async ev => {
+  if (ev.target.closest('[data-signout]')) {
+    await sb.auth.signOut();
+    location.hash = '#/dashboard';
+    render();
+  }
+});
+
+window.addEventListener('hashchange', render);
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') render();
+});
+
+render();
+</script>
+</body>
+</html>
